@@ -14,7 +14,7 @@ Options:
   --config=<file>   Specify an alternate config file (default: ~/.config/pass-rotate.ini)
 """
 
-from passrotate import PassRotate
+from passrotate import PassRotate, PassRotateException
 from configparser import ConfigParser
 from docopt import docopt
 import traceback
@@ -123,9 +123,12 @@ for account in args.get("<accounts>"):
         new_password = gen_password(pass_name)
         provider.execute(old_password, new_password)
         sys.stderr.write("OK\n")
-    except:
+    except Exception as e:
         sys.stderr.write("FAIL\n")
-        sys.stderr.write(traceback.format_exc())
+        if isinstance(e, PassRotateException):
+            sys.stderr.write(e.explain())
+        else:
+            sys.stderr.write(traceback.format_exc())
         sys.stderr.write("\nFailed to rotate {}\n".format(account))
         errs += 1
     sys.stderr.flush()

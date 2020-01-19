@@ -1,5 +1,7 @@
 from passrotate.provider import get_provider, get_providers
+from passrotate.exceptions import PassRotateException
 import passrotate.providers
+import passrotate.yamlprovider
 from getpass import getpass
 
 def _getpass_prompt(prompt, prompt_type):
