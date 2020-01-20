@@ -7,6 +7,9 @@ class AbortFlowException(Exception):
 class RetryFlowException(Exception):
     pass
 
+class RestartStageException(Exception):
+    pass
+
 class PassRotateException(Exception):
     """For errors encountered during execution of a flow."""
 

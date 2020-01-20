@@ -1,0 +1,32 @@
+---
+name: Wikipedia
+domains:
+  - wikipedia.org
+options:
+  username: "Your Wikipedia username"
+
+prepare:
+  - get_url: "https://en.wikipedia.org/w/index.php?title=Special:UserLogin"
+    match_form:
+      - field: "wpName"
+        fill: "{username}"
+      - field: "wpPassword"
+        fill: "{old_password}"
+    action:
+      type: submit_form
+      success:
+        status: 200
+        text_match_not: "Incorrect username or password entered"
+
+execute:
+- get_url: "https://en.wikipedia.org/w/index.php?title=Special:ChangeCredentials/MediaWiki\\Auth\\PasswordAuthenticationRequest"
+  match_form:
+    - field: "password"
+      fill: "{new_password}"
+    - field: "retype"
+      fill: "{new_password}"
+  action:
+    type: submit_form
+    success:
+      status: 200
+      text_match: "Your credentials have been changed"

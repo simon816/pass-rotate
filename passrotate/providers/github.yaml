@@ -1,0 +1,46 @@
+---
+name: GitHub
+domains:
+  - github.com
+options:
+  username: "Your GitHub username"
+
+prepare:
+  - get_url: "https://github.com/login"
+    match_form:
+      - field: "login"
+        fill: "{username}"
+      - field: "password"
+        fill: "{old_password}"
+    action:
+      type: submit_form
+      success:
+        status: 200
+        text_match_not: "Incorrect username or password"
+  - if_match:
+      path_match: "^/sessions/two-factor$"
+    match_form:
+      - field: "otp"
+        prompt: TOTP
+    action:
+      type: submit_form
+      success:
+        path_match_not: "^/sessions/two-factor$"
+      fail: retry
+
+execute:
+  - get_url: "https://github.com/settings/security"
+    match_form:
+      - attr: "id"
+        value: "change_password"
+      - field: "user[old_password]"
+        fill: "{old_password}"
+      - field: "user[password]"
+        fill: "{new_password}"
+      - field: "user[password_confirmation]"
+        fill: "{new_password}"
+    action:
+      type: submit_form
+      success:
+        status: 200
+        text_match: "Password changed successfully"

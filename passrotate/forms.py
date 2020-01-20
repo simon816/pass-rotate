@@ -13,12 +13,23 @@ def get_form_data(inputs: ResultSet) -> FormData:
 
     Returns dictionary with (name, value) pairs from inputs.
     """
-    return {
-        i.get("name", ""): \
-        i.get("value", "") or "" if i.name == "input" \
-        else i.find("option", attrs={"selected": "selected"}).get("value") \
-        for i in inputs if i.get("name", "")
-    }
+    data = {}
+    for i in inputs:
+        name = i.get("name")
+        if not name:
+            continue
+        if i.name == "input":
+            if i.get("type") in ["checkbox", "radio"] \
+               and not i.has_attr("checked"):
+                continue
+            value = i.get("value", "")
+        elif i.name == "select":
+            option = i.find("option", selected=True)
+            if option is None:
+                continue
+            value = option.get("value", "")
+        data[name] = value
+    return data
 
 
 def get_form(text: str, type: str = "form", **kwargs) -> FormData:

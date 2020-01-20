@@ -1,0 +1,80 @@
+---
+name: "NameCheap"
+domains:
+  - namecheap.com
+options:
+  username: "Your Namecheap username"
+
+prepare:
+  - get_url: "https://www.namecheap.com/myaccount/login/"
+    match_form:
+      - field: "LoginUserName"
+        fill: "{username}"
+      - field: "LoginPassword"
+        fill: "{old_password}"
+    action:
+      type: submit_form
+      success:
+        status: 200
+        path_match_not: "^/myaccount/login/$"
+        text_match_not: "Validation Error"
+  - store_element:
+      element: input
+      attrs:
+        id: "x-ncpl-csrfvalue"
+      store:
+        attr: value
+        variable: csrf
+  - if_match:
+      path_match: "^/twofa/totp$"
+    set_variable:
+      variable: "needs_2fa"
+      value: "1"
+    action:
+      type: http_post
+      url: "https://www.namecheap.com/api/v1/ncpl/twofactorauth/uiauthenticate/startAuthentication"
+      data_json: {}
+      headers:
+        "x-ncpl-rcsrf": "{csrf}"
+  - if_match:
+      variable_exists: "{needs_2fa}"
+    store_json: auth_params
+  - if_match:
+      variable_exists: "{needs_2fa}"
+    prompt:
+      type: TOTP
+      variable: totp_code
+    action:
+      type: http_post
+      url: "https://www.namecheap.com/api/v1/ncpl/twofactorauth/uiauthenticate/verifyUserByCode"
+      data_json:
+        request:
+          AuthorizationCode: "{totp_code}"
+          VerificationType: "TOTP"
+          AuthorizationId: "{auth_params[AuthenticationId]}"
+      headers:
+        "x-ncpl-rcsrf": "{csrf}"
+      success:
+        status: 200
+        json:
+          Success: true
+      fail: retry
+  - if_match:
+      variable_exists: "{needs_2fa}"
+    get_url: "https://www.namecheap.com/myaccount/twofa/SecondAuthComplete.ashx?ReturnUrl=https%3a%2f%2fap.www.namecheap.com"
+
+execute:
+  - get_url: "https://ap.www.namecheap.com/settings/security"
+    action:
+      type: http_post
+      url: "https://ap.www.namecheap.com/api/v1/ncpl/usermanagement/uiuser/changePassword"
+      data_json:
+        request:
+          NewPassword: "{new_password}"
+          OldPassword: "{old_password}"
+      headers:
+        "x-ncpl-rcsrf": "{csrf}"
+      success:
+        status: 200
+        json:
+          Success: true

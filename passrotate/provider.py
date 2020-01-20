@@ -2,7 +2,7 @@ import abc
 from enum import Enum
 
 from .core import Env
-from .exceptions import PassRotateException
+from .exceptions import PassRotateException, RestartStageException
 
 _providers = list()
 _provider_map = dict()
@@ -81,9 +81,13 @@ class FlowProvider(Provider, metaclass=abc.ABCMeta):
                        self.get_execute_flows(old_password, new_password))
 
     def run_flows(self, stage, flows):
+        flows = list(flows)
         for i, flow in enumerate(flows):
             try:
                 flow.run(self.env)
+            except RestartStageException:
+                self.run_flows(stage, flows)
+                return
             except Exception as e:
                 raise PassRotateException("Error in %s stage, step %d" % (
                     stage, i + 1))

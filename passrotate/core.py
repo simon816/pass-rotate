@@ -6,7 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .exceptions import AbortFlowException, RetryFlowException, \
-     PassRotateException
+     PassRotateException, RestartStageException
 
 class Env:
 
@@ -106,14 +106,33 @@ class Formatted(Getter):
 class TOTPPrompter(Getter):
 
     def get(self, env):
+        from .provider import PromptType
         return env.provider.prompt("Enter your two factor (TOTP) code",
                                    PromptType.totp)
 
 class SMSPrompter(Getter):
 
     def get(self, env):
+        from .provider import PromptType
         return env.provider.prompt("Enter your SMS authorization code",
                                    PromptType.sms)
+
+class GenericPrompter(Getter):
+
+    def get(self, env):
+        from .provider import PromptType
+        return env.provider.prompt("Enter the challenge response",
+                                   PromptType.generic)
+
+class CAPTCHAPrompter(Getter):
+
+    def get(self, env):
+        from .provider import PromptType
+        msg = ("The page at %s requires a CAPTCHA to be completed. " \
+               "Please open the page, complete the CAPTCHA and paste " \
+               "the response data (e.g. g-recaptcha-response for reCAPTCHA)"
+               ) % (env.curr_resp.url)
+        return env.provider.prompt(msg, PromptType.generic)
 
 class Component(metaclass=abc.ABCMeta):
 
@@ -135,5 +154,7 @@ class Flow:
             except RetryFlowException:
                 self.run(env)
                 return
+            except RestartStageException:
+                raise # Bubble this exception
             except:
                 raise PassRotateException("Error in component %s" % component)

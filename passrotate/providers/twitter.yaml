@@ -1,0 +1,71 @@
+---
+name: "Twitter"
+domains:
+  - twitter.com
+  - m.twitter.com
+options:
+  username: "Your Twitter username"
+
+prepare:
+  - get_url: "https://mobile.twitter.com/login"
+    store_cookie:
+      "_mb_tk": token
+    action:
+      type: http_post
+      url: "https://mobile.twitter.com/sessions"
+      data:
+        authenticity_token: "{token}"
+        "session[username_or_email]": "{username}"
+        "session[password]": "{old_password}"
+        "remember_me": "0"
+        "wfa": "1"
+        "redirect_after_login": "/"
+      success:
+        status: 200
+        path_match_not: "^(/login(/error)?|/account/locked)$"
+  - if_match:
+      path_match: "^/account/login_(challenge|verification)$"
+    match_any_form:
+      -
+        - field: "challenge_type"
+          value: "TemporaryPassword"
+        - field: "challenge_response"
+          prompt: GENERIC
+      -
+        - field: "challenge_type"
+          value: "Sms"
+        - field: "challenge_response"
+          prompt: SMS
+    action:
+      type: submit_form
+      fail: retry
+      success:
+        status: 200
+        path_match_not: "^/account/login_(challenge|verification)$"
+  - get_url:
+      url: "https://twitter.com"
+      headers:
+        referer: "https://twitter.com"
+
+execute:
+  - get_url:
+      url: "https://twitter.com/settings/password"
+      headers:
+        referer: "https://twitter.com"
+    match_form:
+      - attr: id
+        value: "password-form"
+      - field: "current_password"
+        fill: "{old_password}"
+      - field: "user_password"
+        fill: "{new_password}"
+      - field: "user_password_confirmation"
+        fill: "{new_password}"
+    action:
+      type: submit_form
+      headers:
+        origin: "https://twitter.com"
+        referer: "https://twitter.com/settings/password"
+      success:
+        status: 200
+        text_match: "Your password has been changed"

@@ -1,0 +1,40 @@
+---
+name: Facebook
+domains:
+  - facebook.com
+options:
+  username: "Your Facebook username"
+
+prepare:
+  - get_url: "https://m.facebook.com/login.php"
+    match_form:
+      - attr: "id"
+        value: "login_form"
+      - field: "email"
+        fill: "{username}"
+      - field: "pass"
+        fill: "{old_password}"
+    action:
+      type: submit_form
+      success:
+        status: 200
+        text_match_not: "(The email address that you&#039;ve entered doesn&#039;t match any account|The password you entered is incorrect)"
+
+execute:
+  - get_url: "https://m.facebook.com/settings/security/password/"
+    match_form:
+      - attr: "method"
+        value: "post"
+      - field: "password_old"
+        fill: "{old_password}"
+      - field: "password_new"
+        fill: "{new_password}"
+      - field: "password_confirm"
+        fill: "{new_password}"
+    action:
+      type: submit_form
+      success:
+        status: 200
+        path_match_not: "^/settings/security/password/$"
+        query_match:
+          password_reply_value: "^$"

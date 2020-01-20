@@ -1,0 +1,70 @@
+---
+name: "Cloudflare"
+domains:
+  - cloudflare.com
+  - www.cloudflare.com
+options:
+  email: "Your Cloudflare email address"
+
+prepare:
+  - get_url: "https://dash.cloudflare.com/login"
+    store_js_json:
+      match: "^window[.]bootstrap = (.*);"
+      variable: bootstrap
+  - if_match:
+      variable_exists: "{bootstrap[data][captcha_key]}"
+    prompt:
+      type: CAPTCHA
+      variable: captcha_response
+  - if_match:
+      variable_exists_not: "{captcha_response}"
+    set_variable:
+      variable: captcha_response
+      value: ""
+  - action:
+      type: http_post
+      url: "https://dash.cloudflare.com/login"
+      data:
+        email: "{email}"
+        password: "{old_password}"
+        security_token: "{bootstrap[data][security_token]}"
+        "g-recaptcha-response": "{captcha_response}"
+      success:
+        status: 200
+        path_match_not: "^/login$"
+  - if_match:
+      path_match: "^/two-factor$"
+    store_js_json:
+      match: "^window[.]bootstrap = (.*);"
+      variable: bootstrap
+    prompt:
+      type: TOTP
+      variable: totp_code
+    action:
+      type: http_post
+      url: "https://dash.cloudflare.com/two-factor"
+      data:
+        twofactor_token: "{totp_code}"
+        security_token: "{bootstrap[data][security_token]}"
+      success:
+        status: 200
+        path_match_not: "^/login$"
+      fail: restart
+
+execute:
+  - get_url: "https://dash.cloudflare.com/profile/authentication"
+    store_js_json:
+      match: "^window[.]bootstrap = (.*);"
+      variable: bootstrap
+    action:
+      type: http_put
+      url: "https://dash.cloudflare.com/api/v4/user/password"
+      data_json:
+        new_password: "{new_password}"
+        old_password: "{old_password}"
+      headers:
+        "x-atok": "{bootstrap[atok]}"
+      success:
+        status: 200
+        json:
+          success: true
