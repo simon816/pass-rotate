@@ -12,5 +12,7 @@ setup(
     version="1.0",
     scripts=["pass-rotate"],
     packages=["passrotate", "passrotate.providers"],
-    install_requires=["beautifulsoup4", "docopt", "requests", "html5lib"]
+    package_data={'passrotate.providers': ['*.yaml']},
+    install_requires=["beautifulsoup4", "docopt", "requests", "html5lib",
+                      "pyyaml"]
 )
