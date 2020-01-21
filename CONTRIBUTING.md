@@ -51,9 +51,9 @@ a logical step when interacting with the website/API.
 Not all steps on a given website may be nicely broken down into what a Flow defines, leading to
 an unusual looking sequence, however the Flow order should match quite closely with most sites.
 
-In the YAML file, a `FlowSpec` is a mapping of component type to component arguments. Order within
-a `FlowSpec` is not important since Flows will always be in the same order, however a list of
-`FlowSpec`s will always be run in sequence.
+In the YAML file, a `FlowSpec` is a mapping of component type to component arguments. The written order of components
+within a `FlowSpec` is not important since Flows will always execute their components in the same order,
+however a list of `FlowSpec`s will always be run in sequence.
 
 The ordering of components in a Flow is defined as:
 
@@ -239,7 +239,7 @@ Common Arguments:
 
 The following action handler types are defined:
 
-- **submit_form**
+_submit_form_
 
 Submits the form matched by `match_form`.
 
@@ -250,7 +250,7 @@ Additional arguments:
 - `headers` (optional, default: `{}`): A mapping of HTTP headers to provide to the request. Values are `Formatted` strings.
 - `follow_redirects` (optional, default: `true`): Boolean Whether to follow redirects
 
-- **http_(post|put|patch|get)**
+_http\_(post|put|patch|get)_
 
 Performs an HTTP request using one of the listed verbs.
 
@@ -300,6 +300,23 @@ Matches are given by their match property and match value, refer to this table:
 | document | Value is a list of element specifications. Response is interpreted as an HTML document match succeeds if all elements are found |
 | json | Value is a nested structure representing the expected JSON values. Response is interpreted as JSON data |
 | variable_exists | Value is a `Formatted` string. Match succeeds if the string after formatting is non-empty |
+
+
+#### Environment
+
+The execution of a provider YAML maintains state in an environment object. The environment holds 4 states:
+
+- All variables - this includes options passed by the user.
+- The current `requests` session. This holds HTTP session data (cookies).
+- Most recent form matched by `match_form`
+- The result of the most recent HTTP request.
+    This result object holds both the response headers and body.
+    `MatchSpec` uses this to match against.
+
+Be aware that issuing an HTTP request will replace the stored response, so save any data in variables if needed later.
+
+The environment persists for the entire execution of the service provider - variables captured in the prepare section
+can be used in the execute section.
 
 ### Python service provider implementation
 
